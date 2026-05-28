@@ -675,9 +675,119 @@ header p {
   padding: 0 2px;
   transition: background .3s ease;
 }
+
+/* ===== Splash / Intro Screen ===== */
+#splash {
+  position: fixed; inset: 0;
+  z-index: 9999;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  background: #0a0604;
+  transition: opacity 1s ease, visibility 1s ease;
+  cursor: pointer;
+  user-select: none;
+}
+#splash.hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+#splash .splash-ring {
+  position: absolute;
+  width: 320px; height: 320px;
+  border: 1px solid rgba(201,168,76,.12);
+  border-radius: 50%;
+  animation: ringPulse 4s ease-in-out infinite;
+}
+#splash .splash-ring:nth-child(2) {
+  width: 420px; height: 420px;
+  animation-delay: 1s;
+  border-color: rgba(201,168,76,.08);
+}
+#splash .splash-ring:nth-child(3) {
+  width: 520px; height: 520px;
+  animation-delay: 2s;
+  border-color: rgba(201,168,76,.05);
+}
+@keyframes ringPulse {
+  0%, 100% { transform: scale(.95); opacity: .4; }
+  50% { transform: scale(1.05); opacity: 1; }
+}
+#splash .splash-icon {
+  font-size: 2.8rem;
+  animation: iconFloat 3s ease-in-out infinite;
+  filter: drop-shadow(0 0 20px rgba(201,168,76,.4));
+  margin-bottom: 28px;
+}
+@keyframes iconFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+#splash .splash-title {
+  font-size: 3rem;
+  color: var(--gold);
+  letter-spacing: .4em;
+  font-weight: 400;
+  text-shadow: 0 0 40px rgba(201,168,76,.3);
+  opacity: 0;
+  animation: splashFadeUp 1.2s .5s ease-out forwards;
+  font-family: 'DiaryFont', 'Georgia', serif;
+}
+#splash .splash-sub {
+  font-size: .9rem;
+  color: var(--ink-light);
+  letter-spacing: .3em;
+  margin-top: 10px;
+  opacity: 0;
+  animation: splashFadeUp 1.2s .9s ease-out forwards;
+}
+#splash .splash-hint {
+  position: absolute;
+  bottom: 40px;
+  color: rgba(201,168,76,.25);
+  font-size: .75rem;
+  letter-spacing: .2em;
+  opacity: 0;
+  animation: splashFadeUp 1s 2.5s ease-out forwards, hintBlink 2s 3.5s ease-in-out infinite;
+}
+@keyframes hintBlink {
+  0%, 100% { opacity: .25; }
+  50% { opacity: .6; }
+}
+@keyframes splashFadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+#splash .splash-line {
+  width: 60px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  margin: 20px auto;
+  opacity: 0;
+  animation: splashFadeUp 1s 1.3s ease-out forwards;
+}
+
+@media (max-width: 640px) {
+  #splash .splash-title { font-size: 2rem; }
+  #splash .splash-ring { width: 220px; height: 220px; }
+  #splash .splash-ring:nth-child(2) { width: 300px; height: 300px; }
+  #splash .splash-ring:nth-child(3) { width: 380px; height: 380px; }
+}
 </style>
 </head>
 <body>
+
+<!-- Splash / Intro Screen -->
+<div id="splash">
+  <div class="splash-ring"></div>
+  <div class="splash-ring"></div>
+  <div class="splash-ring"></div>
+  <div class="splash-icon">📖</div>
+  <div class="splash-title">313 Days</div>
+  <div class="splash-line"></div>
+  <div class="splash-sub">RECORD THIS EPIC</div>
+  <div class="splash-hint">点击任意处打开日记</div>
+</div>
 
 <!-- Background effects -->
 <div id="particles"></div>
@@ -785,9 +895,55 @@ header p {
   const timelineCount       = $('timeline-count');
   const timelineSearchInput = $('timeline-search-input');
   const timelineSearchClear = $('timeline-search-clear');
+  const splash            = $('splash');
 
-  // ===== Particles =====
-  function createParticles() {
+  // ===== Splash =====
+  let diaryStarted = false;
+
+  // Create splash-specific particles
+  (function createSplashParticles() {
+    for (let i = 0; i < 16; i++) {
+      const p = document.createElement('div');
+      p.style.cssText = `
+        position: absolute;
+        width: ${2 + Math.random() * 3}px;
+        height: ${2 + Math.random() * 3}px;
+        background: rgba(201,168,76,${.15 + Math.random() * .3});
+        border-radius: 50%;
+        left: ${Math.random() * 100}%;
+        top: ${Math.random() * 100}%;
+        animation: splashParticle ${4 + Math.random() * 6}s ${Math.random() * 4}s ease-in-out infinite alternate;
+        pointer-events: none;
+      `;
+      splash.appendChild(p);
+    }
+    // Inject keyframes once
+    const style = document.createElement('style');
+    style.textContent = `@keyframes splashParticle {
+      0% { opacity: 0; transform: translateY(0) scale(.5); }
+      50% { opacity: .8; }
+      100% { opacity: 0; transform: translateY(-60px) scale(1); }
+    }`;
+    document.head.appendChild(style);
+  })();
+
+  function startDiary() {
+    if (diaryStarted) return;
+    diaryStarted = true;
+    splash.classList.add('hidden');
+    // Start loading diary after splash fades
+    setTimeout(() => { loadDiary(); createParticles(); }, 600);
+  }
+  splash.addEventListener('click', startDiary);
+  splash.addEventListener('keydown', e => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); startDiary(); }
+  });
+  // Make splash focusable for keyboard
+  splash.setAttribute('tabindex', '0');
+  splash.focus();
+
+  // Auto-start after 8 seconds if not interacted
+  setTimeout(() => { if (!diaryStarted) startDiary(); }, 8000);
     const container = $('particles');
     for (let i = 0; i < 24; i++) {
       const p = document.createElement('div');
@@ -799,7 +955,6 @@ header p {
       container.appendChild(p);
     }
   }
-  createParticles();
 
   // ===== Toast =====
   function toast(msg, dur) {
@@ -1120,7 +1275,7 @@ header p {
   });
 
   // ===== Init =====
-  loadDiary();
+  // Splash handles the entry — diary loads after splash is dismissed
 
 })();
 </script>

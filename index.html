@@ -944,6 +944,9 @@ header p {
 
   // Auto-start after 8 seconds if not interacted
   setTimeout(() => { if (!diaryStarted) startDiary(); }, 8000);
+
+  // ===== Particles =====
+  function createParticles() {
     const container = $('particles');
     for (let i = 0; i < 24; i++) {
       const p = document.createElement('div');
